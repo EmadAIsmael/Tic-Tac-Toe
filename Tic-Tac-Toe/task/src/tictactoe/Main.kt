@@ -2,9 +2,17 @@ package tictactoe
 
 
 class TicTacToe {
+
+    data class GameStatus(
+        var xWins: Boolean = false,
+        var oWins: Boolean = false,
+        var isDraw: Boolean = false
+    )
+
     private val rows = 3
     private val columns = 3
     private val board = Array(3) { arrayOf("_", "_", "_") }
+    private val status = GameStatus()
 
     fun setX(row: Int, col: Int) {
         board[row - 1][col - 1] = "X"
@@ -47,30 +55,36 @@ class TicTacToe {
         return false
     }
 
-    fun drawInitialBoard() {
-        val cells = readInintialBoard()
+    private fun drawInitialBoard() {
+        val cells = "_".repeat(9)
         for (r in 1..rows)
             for (c in 1..columns)
                 board[r - 1][c - 1] = cells[((r - 1) * 3) + c - 1].toString()
         println(this)
-        // showStatus(cells)
     }
 
-    private fun showStatus(cells: String) {
+    private fun getStatus(cells: String) {
         val numOs = cells.count { it == 'O' }
         val numXs = cells.count { it == 'X' }
         val num_s = cells.count { it == '_' }
-        println(
-            when {
-                numOs - numXs >= 2 || numXs - numOs >= 2 -> "Impossible"
-                isWinner("O") && isWinner("X") -> "Impossible"
-                isWinner("O") && !isWinner("X") -> "O wins"
-                isWinner("X") && !isWinner("O") -> "X wins"
-                num_s == 0 -> "Draw"
-                num_s > 0 -> "Game not finished"
-                else -> ""
+        when {
+            numOs - numXs >= 2 || numXs - numOs >= 2 -> "Impossible"
+            isWinner("O") && isWinner("X") -> "Impossible"
+            isWinner("O") && !isWinner("X") -> {
+                // "O wins"
+                status.oWins = true
             }
-        )
+            isWinner("X") && !isWinner("O") -> {
+                // "X wins"
+                status.xWins = true
+            }
+            num_s == 0 -> {
+                // "Draw"
+                status.isDraw = true
+            }
+            num_s > 0 -> "Game not finished"
+            else -> ""
+        }
     }
 
     private fun readInintialBoard(): String {
@@ -83,10 +97,10 @@ class TicTacToe {
         return initialBoard
     }
 
-    fun getUserMove() {
+    private fun getUserMove(move: String = "X") {
         while (true) {
             try {
-                print("Enter cells: ")
+                print("Enter the coordinates: ")
                 val input = readLine()!!.split(' ')
                 if (input.size != 2) throw NumberFormatException("You should enter numbers!")
 
@@ -95,7 +109,7 @@ class TicTacToe {
                     throw CoordinatesOutOfRangeException("Coordinates should be from 1 to 3!")
                 if (board[rn - 1][cn - 1] in "OX")
                     throw OccupiedCellChosenException("This cell is occupied! Choose another one!")
-                board[rn - 1][cn - 1] = "X"
+                board[rn - 1][cn - 1] = move
                 break
             } catch (e: OccupiedCellChosenException) {
                 println(e.message)
@@ -108,9 +122,32 @@ class TicTacToe {
         println(this)
     }
 
+    private fun boardAsString(): String {
+        var str = ""
+        for (r in 1..rows)
+            for (c in 1..columns)
+                str += board[r - 1][c - 1]
+        return str
+    }
+
     fun play() {
         drawInitialBoard()
-        getUserMove()
+        val player = arrayOf("X", "O")
+        var playerIdx = 0
+        do {
+            getUserMove(player[playerIdx])
+            playerIdx = (playerIdx + 1) % 2
+            getStatus(boardAsString())
+        } while (!(status.xWins || status.oWins || status.isDraw))
+
+        println(
+            when {
+                status.xWins -> "X wins"
+                status.oWins -> "O wins"
+                status.isDraw -> "Draw"
+                else -> ""
+            }
+        )
     }
 
     override fun toString(): String {
@@ -132,15 +169,10 @@ class TicTacToe {
 
 class CoordinatesOutOfRangeException(message: String) : Exception(message)
 
-class OccupiedCellChosenException(message: String): Exception(message)
+class OccupiedCellChosenException(message: String) : Exception(message)
 
 fun main() {
     val tictactoe = TicTacToe()
-
-//    tictactoe.setX(1, 2)
-//    tictactoe.setX(2, 3)
-//
-//    println(tictactoe)
 
     tictactoe.play()
 }
